@@ -14,7 +14,11 @@ JOBS_DB = {
     'Web Developer': ['html', 'css', 'javascript', 'react', 'flask', 'git', 'bootstrap'],
     'Data Analyst': ['python', 'sql', 'excel', 'power bi', 'tableau', 'pandas', 'statistics'],
     'Java Developer': ['java', 'spring boot', 'hibernate', 'sql', 'maven', 'junit'],
-    'Python Developer': ['python', 'flask', 'django', 'postgresql', 'rest api', 'aws']
+    'Python Developer': ['python', 'flask', 'django', 'postgresql', 'rest api', 'aws'],
+    'Software Testing': ['manual testing', 'selenium', 'java', 'testng', 'cucumber', 'api testing'],
+    'Cloud Engineer': ['aws', 'azure', 'docker', 'kubernetes', 'linux', 'terraform'],
+    'Data Scientist': ['python', 'machine learning', 'deep learning', 'nlp', 'scikit-learn', 'sql'],
+    'App Developer': ['flutter', 'dart', 'react native', 'android studio', 'ios', 'firebase']
 }
 
 @app.route('/')
