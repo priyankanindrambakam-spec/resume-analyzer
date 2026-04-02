@@ -1,6 +1,7 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, send_file
 import os
 import PyPDF2
+from fpdf import FPDF
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
@@ -9,7 +10,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-# Step 2: Multiple Job Roles Database
+# Full Jobs Database
 JOBS_DB = {
     'Web Developer': ['html', 'css', 'javascript', 'react', 'flask', 'git', 'bootstrap'],
     'Data Analyst': ['python', 'sql', 'excel', 'power bi', 'tableau', 'pandas', 'statistics'],
@@ -37,14 +38,12 @@ def upload_file():
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
     file.save(file_path)
 
-    # Extract Text
     text = ""
     with open(file_path, "rb") as f:
         reader = PyPDF2.PdfReader(f)
         for page in reader.pages:
             text += page.extract_text().lower()
 
-    # Smart Matching Logic
     results = []
     for job_title, required_skills in JOBS_DB.items():
         matched_skills = [skill for skill in required_skills if skill in text]
@@ -58,10 +57,37 @@ def upload_file():
             'missing': missing_skills
         })
 
-    # Sort results to show highest score first
     results = sorted(results, key=lambda x: x['score'], reverse=True)
-    
     return render_template('result.html', results=results)
+
+# New Route for PDF Download
+@app.route('/download_report', methods=['POST'])
+def download_report():
+    data = request.get_json()
+    results = data.get('results', [])
+
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(200, 10, txt="AI Resume Analysis - Career Report", ln=True, align='C')
+    pdf.ln(10)
+
+    for res in results:
+        pdf.set_font("Arial", 'B', 12)
+        pdf.set_text_color(0, 0, 0)
+        pdf.cell(200, 10, txt=f"Role: {res['role']} (Match: {res['score']}%)", ln=True)
+        
+        pdf.set_font("Arial", size=10)
+        pdf.set_text_color(0, 128, 0)
+        pdf.multi_cell(0, 8, txt=f"Matched Skills: {', '.join(res['matched'])}")
+        
+        pdf.set_text_color(255, 0, 0)
+        pdf.multi_cell(0, 8, txt=f"Missing Skills: {', '.join(res['missing'])}")
+        pdf.ln(5)
+
+    report_path = os.path.join(UPLOAD_FOLDER, "analysis_report.pdf")
+    pdf.output(report_path)
+    return send_file(report_path, as_attachment=True)
 
 if __name__ == "__main__":
     app.run(debug=True)
