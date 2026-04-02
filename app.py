@@ -5,6 +5,8 @@ import PyPDF2
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
 
 # Industry Standard Skills
 KEYWORDS = ['python', 'java', 'html', 'css', 'javascript', 'sql', 'flask', 'git', 'react', 'aws', 'c', 'cpp', 'excel', 'communication', 'problem solving', 'agile']
