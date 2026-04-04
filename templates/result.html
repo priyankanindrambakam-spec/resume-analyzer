@@ -8,10 +8,10 @@
 
 <script>
 function downloadPDF() {
-    // Flask nundi vachina results ni JavaScript loki teesukuntunnam
+    
     const results = {{ results | tojson }};
     
-    // Backend '/download_report' route ki data pampisthunnam
+    
     fetch('/download_report', {
         method: 'POST',
         headers: {
@@ -24,7 +24,7 @@ function downloadPDF() {
         throw new Error('Download failed');
     })
     .then(blob => {
-        // PDF ni browser lo download cheyisthunnam
+        
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -34,5 +34,3 @@ function downloadPDF() {
         a.remove();
     })
     .catch(error => alert("Error: " + error.message));
-}
-</script>
