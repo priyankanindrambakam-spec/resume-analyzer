@@ -53,30 +53,104 @@
             <button onclick="downloadPDF()" class="btn btn-success px-5 rounded-pill ms-2 shadow-sm">Download Report (PDF) 📥</button>
         </div>
     </div>
+<!-- Chart.js CDN -->
+<!-- Store data safely -->
+<!-- Store data safely -->
+<script id="results-data" type="application/json">
+    {{ results | tojson | safe }}
+</script>
 
-    <script>
-    function downloadPDF() {
-        const results = {{ results | tojson }};
-        fetch('/download_report', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({results: results})
-        })
-        .then(response => {
-            if (response.ok) return response.blob();
-            throw new Error('Download failed');
-        })
-        .then(blob => {
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'Resume_Analysis_Report.pdf';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-        })
-        .catch(error => alert("Error: " + error.message));
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    let analysisResults = [];
+
+    try {
+        const dataElement = document.getElementById("results-data");
+        analysisResults = JSON.parse(dataElement.textContent);
+    } catch (e) {
+        console.warn("Error parsing results:", e);
+        analysisResults = [];
     }
-    </script>
+
+    document.addEventListener('DOMContentLoaded', () => {
+
+        if (!Array.isArray(analysisResults) || analysisResults.length === 0) {
+            console.warn("No analysis results found");
+            return;
+        }
+
+        analysisResults.forEach((res, index) => {
+
+            const canvas = document.getElementById(`chart-${index}`);
+
+            if (!canvas) {
+                console.warn(`Canvas not found: chart-${index}`);
+                return;
+            }
+
+            const ctx = canvas.getContext('2d');
+
+            const score = Number(res.score) || 0;
+            const remaining = 100 - score;
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Matched', 'Missing'],
+                    datasets: [{
+                        data: [score, remaining],
+                        backgroundColor: ['#2ecc71', '#ecf0f1'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    cutout: '75%',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+        });
+    });
+
+    async function downloadReport() {
+        try {
+            const response = await fetch('/download_report', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ results: analysisResults })
+            });
+
+            if (!response.ok) {
+                throw new Error("Server error");
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'Resume_Analysis_Report.pdf';
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            window.URL.revokeObjectURL(url);
+
+        } catch (error) {
+            console.error("Download failed:", error);
+            alert("Failed to download report.");
+        }
+    }
+</script>
 </body>
 </html>

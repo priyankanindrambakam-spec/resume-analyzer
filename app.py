@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_file
+from flask import Flask, render_template, request, send_file, jsonify
 import os
 import PyPDF2
 from fpdf import FPDF
@@ -26,6 +26,19 @@ JOBS_DB = {
 def home():
     return render_template('index.html')
 
+COURSE_LINKS = {
+    "python": "https://www.youtube.com/results?search_query=python+full+course",
+    "flask": "https://www.youtube.com/results?search_query=flask+python+tutorial",
+    "django": "https://www.youtube.com/results?search_query=django+full+course",
+    "aws": "https://www.youtube.com/results?search_query=aws+tutorial+for+beginners",
+    "java": "https://www.youtube.com/results?search_query=java+full+course",
+    "sql": "https://www.youtube.com/results?search_query=sql+tutorial+for+beginners",
+    "machine learning": "https://www.youtube.com/results?search_query=machine+learning+full+course",
+    "react": "https://www.youtube.com/results?search_query=react+js+full+course",
+    "javascript": "https://www.youtube.com/results?search_query=javascript+full+course",
+    "html": "https://www.youtube.com/results?search_query=html+css+tutorial",
+    "css": "https://www.youtube.com/results?search_query=css+full+tutorial"
+}
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'resume' not in request.files:
@@ -35,32 +48,37 @@ def upload_file():
     if file.filename == '':
         return "No file selected"
 
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+    file_path = os.path.join(UPLOAD_FOLDER, file.filename)
     file.save(file_path)
 
-    text = ""
+    resume_text = ""
     with open(file_path, "rb") as f:
         reader = PyPDF2.PdfReader(f)
         for page in reader.pages:
-            text += page.extract_text().lower()
+            resume_text += page.extract_text().lower()
 
     results = []
     for job_title, required_skills in JOBS_DB.items():
-        matched_skills = [skill for skill in required_skills if skill in text]
-        missing_skills = [skill for skill in required_skills if skill not in text]
+        matched_skills = [skill for skill in required_skills if skill.lower() in resume_text]
+        missing_skills = [skill for skill in required_skills if skill.lower() not in resume_text]
         score = int((len(matched_skills) / len(required_skills)) * 100)
-        
+
+        recommendations = []
+        for skill in missing_skills:
+            link = COURSE_LINKS.get(skill.lower(), f"https://www.youtube.com/results?search_query={skill.replace(' ', '+')}+tutorial")
+            recommendations.append({'skill': skill, 'link': link})
+
         results.append({
             'role': job_title,
             'score': score,
             'matched': matched_skills,
-            'missing': missing_skills
+            'missing': missing_skills,
+            'recommendations': recommendations
         })
 
     results = sorted(results, key=lambda x: x['score'], reverse=True)
     return render_template('result.html', results=results)
 
-# New Route for PDF Download
 @app.route('/download_report', methods=['POST'])
 def download_report():
     data = request.get_json()
@@ -75,8 +93,8 @@ def download_report():
     for res in results:
         pdf.set_font("Arial", 'B', 12)
         pdf.set_text_color(0, 0, 0)
-        pdf.cell(200, 10, txt=f"Role: {res['role']} (Match: {res['score']}%)", ln=True)
-        
+        pdf.cell(200, 10, txt=f"Role: {res['role']} (Score: {res['score']}%)", ln=True)
+
         pdf.set_font("Arial", size=10)
         pdf.set_text_color(0, 128, 0)
         pdf.multi_cell(0, 8, txt=f"Matched Skills: {', '.join(res['matched'])}")
